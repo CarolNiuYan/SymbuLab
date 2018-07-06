@@ -1,0 +1,19 @@
+### DEFAULT ###
+# Default settings group
+
+set SEED 5
+set MUTATION_RATE 0.01      # Standard deviation of the distribution to mutate by
+set SYNERGY 5                # Amount symbiont's returned resources should be multiplied by
+set VERTICAL_TRANSMISSION 0.  # Value 0 to 1 of probability of symbiont vertically transmitting when host reproduces
+set HOST_INT -2
+set SYM_INT -2
+
+set WORLD_TYPE 1         # Type of the World (1 for Mixed and 2 for Grid)
+
+set GRID_X 20               # Width of the world
+set GRID_Y 20               # Height of world
+set UPDATES 100000             # Number of updates to run before quitting
+
+set BIRTH_RATE 1            # Number of Symbiont born at each reproduction
+set INFECTION_RATE 1        # Number of Symbiont infected at each update
+
