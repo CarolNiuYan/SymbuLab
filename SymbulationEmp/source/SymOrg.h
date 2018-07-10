@@ -6,16 +6,17 @@
 
 
 class Symbiont {
- private:  
-  double interaction_val;
-  double points;
-  std::set<int> res_types;
-
+ private:
+  std::string strain;
+  std::string target;
+  double burst_value;
+  double burst_timer;
+  double repro_rate;
+  double interaction_val; //should always be -1
 
  public:
-
- Symbiont(double _intval=0.0, double _points = 0.0, std::set<int> _set = std::set<int>())
-   : interaction_val(_intval), points(_points), res_types(_set) { ; }
+ Symbiont(std::string _strain, std::string _target,double _burstValue = 10.0, double _burstTimer=0.0, double _reproRate=1.0, double _intval= -1.0)
+   : strain(_strain), target(_target), burst_timer(_burstTimer), repro_rate(_reproRate), interaction_val(_intval){;}
   Symbiont(const Symbiont &) = default;
   Symbiont(Symbiont &&) = default;
   
@@ -23,16 +24,29 @@ class Symbiont {
   Symbiont & operator=(const Symbiont &) = default;
   Symbiont & operator=(Symbiont &&) = default;
 
+  std::string GetStrainType() const {return strain;}
+  std::string GetTargetType() const {return target;}
+  double GetBurstTimer() const {return burst_timer;}
+  double GetReproRate() const {return repro_rate;}
   double GetIntVal() const {return interaction_val;}
-  double GetPoints() {return points;}
-  std::set<int> GetResTypes() const {return res_types;}
 
   void SetIntVal(double _in) { interaction_val = _in;}
-  void SetPoints(double _in) { points = _in;}
-  void AddPoints(double _in) { points += _in;}
-  void SetResTypes(std::set<int> _in) {res_types = _in;}
+  void SetBurstTimer(double _in) {burst_timer = _in;}
+  void SetReproRate(double _in) {repro_rate = _in;}
+    
+  void ResetSymbiont() {
+    SetBurstTimer(0);
+  }
 
-  //TODO: change everything to camel case
+  void IncrementBurstTimer() {
+    burst_timer++;
+  }
+  
+  bool CheckBurst() {
+    return burst_timer >= burst_value;
+  }
+ 
+  //May Not Need For Now
   void mutate(emp::Random &random, double mut_rate){
     interaction_val += random.GetRandNormal(0.0, mut_rate);
     if(interaction_val < -1) interaction_val = -1;
@@ -40,211 +54,86 @@ class Symbiont {
   }
 
 };
-
+/*
 std::string PrintSym(Symbiont  org){
-  if (org.GetPoints() < 0) return "-";
+  if (org == null) return "-";
   double out_val = org.GetIntVal();  
-  
-  // this prints the symbiont with two decimal places for easier reading
   std::stringstream temp;
   temp << std::fixed << std::setprecision(2) << out_val;
   std::string formattedstring = temp.str();
   return formattedstring;
-  
-  // return emp::to_string(out_val);  // creates a string without specifying format
-
-}
+  }*/
 
 class Host {
  private:
-  double interaction_val;
-  Symbiont sym;
-  std::set<int> res_types;
-  double points;
+  std::string name;
+  emp::vector<Symbiont> syms;
+  emp::vector<Symbiont> repro_syms; //place holder for newly built symbionts after infected
+  double resources;
 
  public:
- Host(double _intval =0.0, Symbiont _sym = *(new Symbiont(0, -1)), std::set<int> _set = std::set<int>(), double _points = 0.0) : interaction_val(_intval), sym(_sym), res_types(_set), points(_points) { ; }
+ Host(std::string _name, emp::vector<Symbiont> _syms = {}, emp::vector<Symbiont> _reproSyms = {}, double _resources = 0.0) : name(_name), syms(_syms), repro_syms(_reproSyms), resources(_resources){ ; }
   Host(const Host &) = default;
   Host(Host &&) = default;
-  // Host() : interaction_val(0), sym(*(new Symbiont(0, -1))), res_types(std::set<int>()), points(0) { ; }
-
 
   Host & operator=(const Host &) = default;
   Host & operator=(Host &&) = default;
   bool operator==(const Host &other) const { return (this == &other);}
   bool operator!=(const Host &other) const {return !(*this == other);}
 
-
-  double GetIntVal() const { return interaction_val;}
-  Symbiont GetSymbiont() { return sym;}
-  std::set<int> GetResTypes() const { return res_types;}
-  double GetPoints() { return points;}
-
-
-  void SetIntVal(double _in) {interaction_val = _in;}
-  void SetSymbiont(Symbiont _in) {sym = _in;}
-  void SetResTypes(std::set<int> _in) {res_types = _in;}
-  void SetPoints(double _in) {points = _in;}
-  void AddPoints(double _in) {points += _in;}
-  
-  void GiveSymPoints(double _in) {
-    double distrib = _in;
-    sym.AddPoints(distrib);
-    
-  }
-  
-  void ResetSymPoints() {
-    sym.SetPoints(0.0);
-  }
-  	
+  std::string GetName() {return name;}
+  emp::vector<Symbiont> GetSymbionts() { return syms;}
+  emp::vector<Symbiont> GetReproSymbionts() { return repro_syms;}  
+  double GetResources() { return resources;}
 
   
-  void SetSymIntVal (double _in) {
-    sym.SetIntVal(_in);
+  void SetSymbionts(emp::vector<Symbiont> _in) {syms = _in;}
+  void SetResources(double _in) {resources = _in;}
+  void SubtractResources(double _in){resources -= _in;}
   
-  }
-  
-  void DeleteSym() {
-    sym.SetPoints(-1.0);
-  }
+  void AddResources(double _in) {resources += _in;}
+  void AddSymbionts(Symbiont _in) {syms.push_back(_in);}
+  void AddReproSymbionts(Symbiont * _in) {repro_syms.push_back(*_in);}
+
   
   bool HasSym() {
-    if (sym.GetPoints() < 0) { 
+    if (syms.size() <= 0) { 
       return false;
     } else {
       return true;
-    }
-  	
+    } 	
   }
 
-  void mutate(emp::Random &random, double mut_rate){
-    interaction_val += random.GetRandNormal(0.0, mut_rate);
-    if(interaction_val < -1) interaction_val = -1;
-    else if (interaction_val > 1) interaction_val = 1;
-  }
-  
-  void DistribResources(int resources, double synergy) { 
-    // might want to declare a remainingResources variable just to make this easier to maintain
-    double hostIntVal = interaction_val; //using private variable because we can
-    double symIntVal = sym.GetIntVal();
-    
-    double hostPortion = 0.0;
-    double hostDonation = 0.0;
-    double symPortion = 0.0;
-    double symReturn = 0.0;
-    double bonus = synergy;
 
-    //CHANGED: if no sym exists, host get all resoures
-    if(symIntVal < 0){
-      this->AddPoints(resources);
-      return;
-    }
-	
-    //	std::cout << "Dividing resources: " << resources << std::endl;
-    if (hostIntVal >= 0 && symIntVal >= 0)  {  
-      hostDonation = resources * hostIntVal;
-      hostPortion = resources - hostDonation;  
-	    
-      //	    std::cout << "Host keeps " << hostPortion << " and gives " << hostDonation << " to symbiont." << std::endl;
-	    
-      symReturn = (hostDonation * symIntVal) * bonus;  
-      symPortion = hostDonation - (hostDonation * symIntVal);
-	    
-      //	    std::cout << "Symbiont keeps " << symPortion << " and returns " << symReturn << " to host (multiplied by) " << bonus << std::endl;
-
-      hostPortion += symReturn;
-	    
-      //	    std::cout << "In the end, host gets " << hostPortion << std::endl;
-	    
-      this->GiveSymPoints(symPortion);
-      this->AddPoints(hostPortion);
-	    
-    } else if (hostIntVal <= 0 && symIntVal < 0) {  // NEED TO CHECK THAT THIS IS CORRECT - see dissertation
-      double hostDefense = -1.0 * (hostIntVal * resources);
-      double remainingResources = 0.0;
-      //	     std::cout << "Host: " << hostIntVal << " symbiont: " << symIntVal;
-      //	     std::cout << " fight over " << resources << std::endl;
-      // 	     std::cout << "Host invests " << hostDefense << " in defense (which is lost), ";
-      remainingResources = resources - hostDefense;
-      // 	     std::cout << "leaving " << remainingResources << " available for reproduction. " << std::endl;
-	     
-      // if both are hostile, then the symbiont must be more hostile than in order to gain any resources 
-      if (symIntVal < hostIntVal) { //symbiont overcomes host's defenses
-        double symSteals = (hostIntVal - symIntVal) * remainingResources;
-        //	     	std::cout << "Symbiont steals " << symSteals << " resources." << std::endl;
-        symPortion = symSteals;
-        hostPortion = remainingResources - symSteals;
-        //	     	std::cout << "Leaving host receiving " << hostPortion << " resources." << std::endl;
-      } else { // symbiont cannot overcome host's defenses
-        //	     	std::cout << "Symbiont cannot overcome host's defenses, and host keeps " << remainingResources << std::endl;
-	     	
-        symPortion = 0.0;
-        hostPortion = remainingResources;
-	     	
-      }
-
-	     
-      this->GiveSymPoints(symPortion);
-      this->AddPoints(hostPortion);
-	     
-	
-    } else if (hostIntVal > 0 && symIntVal < 0) {
-      hostDonation = hostIntVal * resources;
-      hostPortion = resources - hostDonation;
-      //		std::cout << "Host donates " << hostDonation << " to symbiont." << std::endl;
-      resources = resources - hostDonation;
-		
-      double symSteals = -1.0 * (resources * symIntVal);
-      hostPortion = hostPortion - symSteals;
-      symPortion = hostDonation + symSteals;
-      //		std::cout << "Symbiont steals an additional " << symSteals << " resources, ";
-      //		std::cout << "leaving host with " << hostPortion << " resources.  ";
-      //		std::cout << "Symbiont has " << symPortion << " at end." << std::endl;
-		
-      this->GiveSymPoints(symPortion);
-      this->AddPoints(hostPortion);
-		
-		
-    } else if (hostIntVal < 0 && symIntVal >= 0) {
-      double hostDefense = -1.0 * (hostIntVal * resources);
-      hostPortion = resources - hostDefense;
-		
-      //		std::cout << "Host invests " << hostDefense << " in defense against a friendly symbiont." << std::endl;
-      //		std::cout << "Host keeps " << hostPortion << " and symbiont gets nothing." << std::endl;
-      // symbiont gets nothing from antagonistic host
-      symPortion = 0.0;
-		
-      this->GiveSymPoints(symPortion);
-      this->AddPoints(hostPortion);
-    } else {
-      //		std::cout << "Missed a logical case in distributing resources." << std::endl;
-    }
+  //check whether host will get resources and update resource status
+  void DistribResources(int resources) { 
+    //If host is infected, stop taking resources
+    if(this->HasSym()) {return;}
+    //otherwise, host get all resources
+    this->AddResources(resources);
 
   }
 
-  void Process(emp::Random &random) {
-    //Currently just wrapping to use the existing function
-    //TODO: make the below config options
-    DistribResources(100, 5); 
-
+  void Process(emp::Random &random, double resources) {
+    DistribResources(resources); 
   }
-  
-
 };
 
+/*
 std::string PrintHost(Host * org) {
   if (!org) return "-/-";
   
   std::stringstream temp;
-  temp << std::fixed << std::setprecision(2) << org->GetIntVal();
+  temp << std::fixed << std::setprecision(2) << org->GetResources();
   std::string formattedstring = temp.str();
   
-  std::string out_val = formattedstring + "/" + PrintSym(org->GetSymbiont());
+  std::string out_val = formattedstring + "/" + PrintSym(org->GetSymbionts()[0]);
   
-  // std::string out_val = emp::to_string(org->GetIntVal(),"/", PrintSym(org->GetSymbiont()));  // not completely formatted
   return out_val;
 }
 
-std::string PrintOrg(Host * org) {return PrintHost(org);}
+std::string PrintOrg(Host * org) {return PrintHost(org);
+}
+*/
 
 

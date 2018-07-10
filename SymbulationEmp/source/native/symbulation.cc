@@ -17,11 +17,10 @@ EMP_BUILD_CONFIG( SymConfigBase,
                  VALUE(GRID_X, int, 5, "Width of the world"),
                  VALUE(GRID_Y, int, 5, "Height of world"),
                  VALUE(UPDATES, int, 1, "Number of updates to run before quitting"),
+                  VALUE(POP_SIZE, int, 400, "Number of initial organisms"),
+                  VALUE(MOI, double, 1.0, "Ratio of symbionts to hosts"),
 
                  )
-//TODO: add option for random host and sym int values
-
-
 	
 int main(int argc, char * argv[])
 {    
@@ -38,39 +37,41 @@ int main(int argc, char * argv[])
 
     double numupdates = config.UPDATES();
     //double POP_SIZE = config.GRID_X() * config.GRID_Y();
-    double POP_SIZE = 400;
-    bool random_phen_host = false;
-    bool random_phen_sym = false;
-    if(config.HOST_INT() == -2) random_phen_host = true;
-    if(config.SYM_INT() == -2) random_phen_sym = true;
+    double POP_SIZE = config.POP_SIZE();
+    double MOI = config.MOI();
+    //bool random_phen_host = false;
+    //bool random_phen_sym = false;
+    //if(config.HOST_INT() == -2) random_phen_host = true;
+    //if(config.SYM_INT() == -2) random_phen_sym = true;
 
     emp::Random random(config.SEED());
         
     SymWorld world(random);
     //world.SetPopStruct_Grid(config.GRID_X(), config.GRID_Y();
-    world.SetPopStruct_Mixed(false);
-    world.SetVertTrans(config.VERTICAL_TRANSMISSION());
-    world.SetMutRate(config.MUTATION_RATE());
+    //world.SetPopStruct_Mixed(false);
+    world.SetPopStruct_Grow();
+    //world.SetVertTrans(config.VERTICAL_TRANSMISSION());
+    //world.SetMutRate(config.MUTATION_RATE());
     //Set up files
     world.SetupPopulationFile().SetTimingRepeat(10);
-    world.SetupHostIntValFile("HostVals"+to_string(config.SEED())+"_"+to_string(config.VERTICAL_TRANSMISSION())+".data").SetTimingRepeat(10);
-    world.SetupSymIntValFile("SymVals"+to_string(config.SEED())+"_"+to_string(config.VERTICAL_TRANSMISSION())+".data").SetTimingRepeat(10);
+    //world.SetupHostIntValFile("HostVals"+to_string(config.SEED())+"_"+to_string(config.VERTICAL_TRANSMISSION())+".data").SetTimingRepeat(10);
+    //world.SetupSymIntValFile("SymVals"+to_string(config.SEED())+"_"+to_string(config.VERTICAL_TRANSMISSION())+".data").SetTimingRepeat(10);
 
     //inject organisms
     for (size_t i = 0; i < POP_SIZE; i++){
-      Symbiont new_sym; 
       Host *new_org;
-      if(random_phen_sym) new_sym = *(new Symbiont(random.GetDouble(-1, 1)));
-      else new_sym = *(new Symbiont(config.SYM_INT()));
-      if (random_phen_host) new_org = new Host(random.GetDouble(-1, 1), new_sym);
-      else new_org = new Host(config.HOST_INT(), new_sym);
-
+      // if (random_phen_host) new_org = new Host(random.GetDouble(-1, 1), new_sym);
+      new_org = new Host("E");
       // Host *new_org = new Host(config.HOST_INT(), *(new Symbiont(config.SYM_INT())));
       world.Inject(*new_org);
     }
 
-    //Loop through updates
+    //inject symbionts
+    for(size_t i = 0; i < POP_SIZE * MOI; i++) {
       
+    }
+
+    //Loop through updates      
     for (int i = 0; i < numupdates; i++) {
       //cout << i << endl;
       world.Update();
