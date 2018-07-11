@@ -16,7 +16,7 @@ class Symbiont {
 
  public:
  Symbiont(std::string _strain, std::string _target,double _burstValue = 10.0, double _burstTimer=0.0, double _reproRate=1.0, double _intval= -1.0)
-   : strain(_strain), target(_target), burst_timer(_burstTimer), repro_rate(_reproRate), interaction_val(_intval){;}
+   : strain(_strain), target(_target), burst_value(_burstValue), burst_timer(_burstTimer), repro_rate(_reproRate), interaction_val(_intval){;}
   Symbiont(const Symbiont &) = default;
   Symbiont(Symbiont &&) = default;
   
@@ -27,6 +27,7 @@ class Symbiont {
   std::string GetStrainType() const {return strain;}
   std::string GetTargetType() const {return target;}
   double GetBurstTimer() const {return burst_timer;}
+  double GetBurstValue() const {return burst_value;}
   double GetReproRate() const {return repro_rate;}
   double GetIntVal() const {return interaction_val;}
 
@@ -43,26 +44,14 @@ class Symbiont {
   }
   
   bool CheckBurst() {
+    std::cout << "burst timer is " << burst_timer << std::endl;
+    std::cout << "burst value is " << burst_value << std::endl;
+    bool res = burst_timer >= burst_value;
+    std::cout << "res is " << res << std::endl;
     return burst_timer >= burst_value;
-  }
- 
-  //May Not Need For Now
-  void mutate(emp::Random &random, double mut_rate){
-    interaction_val += random.GetRandNormal(0.0, mut_rate);
-    if(interaction_val < -1) interaction_val = -1;
-    else if (interaction_val > 1) interaction_val = 1;
   }
 
 };
-/*
-std::string PrintSym(Symbiont  org){
-  if (org == null) return "-";
-  double out_val = org.GetIntVal();  
-  std::stringstream temp;
-  temp << std::fixed << std::setprecision(2) << out_val;
-  std::string formattedstring = temp.str();
-  return formattedstring;
-  }*/
 
 class Host {
  private:
@@ -82,8 +71,8 @@ class Host {
   bool operator!=(const Host &other) const {return !(*this == other);}
 
   std::string GetName() {return name;}
-  emp::vector<Symbiont> GetSymbionts() { return syms;}
-  emp::vector<Symbiont> GetReproSymbionts() { return repro_syms;}  
+  emp::vector<Symbiont>* GetSymbionts() { return &syms;}
+  emp::vector<Symbiont>* GetReproSymbionts() { return &repro_syms;}  
   double GetResources() { return resources;}
 
   
@@ -104,6 +93,10 @@ class Host {
     } 	
   }
 
+  size_t NumSym() {
+    return syms.size() + repro_syms.size();
+  }
+
 
   //check whether host will get resources and update resource status
   void DistribResources(int resources) { 
@@ -118,22 +111,5 @@ class Host {
     DistribResources(resources); 
   }
 };
-
-/*
-std::string PrintHost(Host * org) {
-  if (!org) return "-/-";
-  
-  std::stringstream temp;
-  temp << std::fixed << std::setprecision(2) << org->GetResources();
-  std::string formattedstring = temp.str();
-  
-  std::string out_val = formattedstring + "/" + PrintSym(org->GetSymbionts()[0]);
-  
-  return out_val;
-}
-
-std::string PrintOrg(Host * org) {return PrintHost(org);
-}
-*/
 
 
