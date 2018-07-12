@@ -44,13 +44,8 @@ class Symbiont {
   }
   
   bool CheckBurst() {
-    std::cout << "burst timer is " << burst_timer << std::endl;
-    std::cout << "burst value is " << burst_value << std::endl;
-    bool res = burst_timer >= burst_value;
-    std::cout << "res is " << res << std::endl;
     return burst_timer >= burst_value;
   }
-
 };
 
 class Host {
@@ -99,7 +94,7 @@ class Host {
 
 
   //check whether host will get resources and update resource status
-  void DistribResources(int resources) { 
+  void DistribResources(double resources) { 
     //If host is infected, stop taking resources
     if(this->HasSym()) {return;}
     //otherwise, host get all resources

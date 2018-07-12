@@ -11,40 +11,48 @@ class SymWorld : public emp::World<Host>{
   double mut_rate = 0;
   emp::Random random;
   
-  emp::Ptr<emp::DataMonitor<int>> data_node_hostcount;
-  emp::Ptr<emp::DataMonitor<int>> data_node_symcount;
-  emp::Ptr<emp::DataMonitor<int>> data_node_infectedhostnum; 
+  emp::Ptr<emp::DataMonitor<int>> data_node_ecoli_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_shi_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_e_sym_count;
+  emp::Ptr<emp::DataMonitor<int>> data_node_s_sym_count;
 
  public:
- //set fun_print_org to equal function that prints hosts/syms correctly
  SymWorld(emp::Random &random) : emp::World<Host>(random) {
     fun_print_org = [](Host & org, std::ostream & os) {
       //os << PrintHost(&org);
     };
   }
 
-  void InjectSymbiont() {
-    Symbiont * newSym = new Symbiont("18", "E", 10, 0, 1, -1);
+  void InjectSymbiont(std::string strain, double burstVal, double reproRate) {
+    //current model only fits for one symbiont type for each host
+    Symbiont * newSym = new Symbiont("strain18", strain, burstVal, 0, reproRate, -1);
     int newLoc = GetRandomCellID();
-    while (!IsOccupied(newLoc) || pop[newLoc]->HasSym()){
-      newLoc = GetRandomCellID();
+    if (IsOccupied(newLoc) == true) {              
+      if(newSym->GetTargetType() == pop[newLoc]->GetName()){
+        if (!pop[newLoc]->HasSym()) {
+          pop[newLoc]->AddSymbionts(*newSym);
+        } else {
+          if(random.GetInt(0, 100000) <= 1) {
+            pop[newLoc]->AddSymbionts(*newSym);
+          }
+        }
+      }
     }
-    //for future multiple pairs check, not needed for now
-    //if(newSym.GetTargetType() == pop[newLoc]->GetName()){
-    pop[newLoc]->AddSymbionts(*newSym); 
   }
   
   
   emp::DataFile & SetupResultFile(const std::string & filename) {
     auto & file = SetupFile(filename);
-    auto & HostCount = GetHostCountDataNode();
-    auto & SymCount = GetSymCountDataNode();
-    auto & InfectedHost = GetInfectedHostNumDataNode();
+    auto & EcoliCount = GetEcoliDataNode();
+    auto & ShiCount = GetShigellaDataNode();
+    auto & EcoliSymCount = GetEcoliSymCountDataNode();
+    auto & ShiSymCount = GetShiSymCountDataNode();
     
     file.AddVar(update, "update", "Update");
-    file.AddTotal(HostCount, "host_count", "Number of host in the population");
-    file.AddTotal(SymCount, "sym_count", "Number of symbionts in the population");
-    file.AddTotal(InfectedHost, "infected_host", "Number of infected hosts in the population");
+    file.AddTotal(EcoliCount, "Ecoli_count", "Number of Ecoli host in the population");
+    file.AddTotal(ShiCount, "Shigella_count", "Number of Shigella host in the population");
+    file.AddTotal(EcoliSymCount, "e_sym_count", "Number of ecoli symbionts in the population");
+    file.AddTotal(ShiSymCount, "s_sym_count", "Number of shigella symbionts in the population");
 
     file.PrintHeaderKeys();
 
@@ -55,66 +63,76 @@ class SymWorld : public emp::World<Host>{
     return pop[i]->NumSym();
   }
   
-  size_t CalcInfectedHostNum(size_t i) {
-    if (pop[i]->HasSym()) return 1;
-    else return 0;
-  }
-
-  emp::DataMonitor<int>& GetHostCountDataNode() {
-    if (!data_node_hostcount) {
-      data_node_hostcount.New();
+  emp::DataMonitor<int>& GetEcoliDataNode() {
+    if (!data_node_ecoli_count) {
+      data_node_ecoli_count.New();
       OnUpdate(
 	       [this](size_t){
-		 data_node_hostcount->Reset();
+		 data_node_ecoli_count->Reset();
 		 for (size_t i = 0; i< pop.size(); i++) {
                    //CHANGED: Check if the organism has a symbiont before adding the data
-		   if (IsOccupied(i)) data_node_hostcount->AddDatum(1);
-		 }
-	       }
-	       );
+		   if (IsOccupied(i) && pop[i]->GetName() == "Ecoli") data_node_ecoli_count->AddDatum(1);
+                 }
+               }
+               );
     }
-    return *data_node_hostcount;
-  }
-  
-  emp::DataMonitor<int>& GetSymCountDataNode() {
-    if (!data_node_symcount) {
-      data_node_symcount.New();
-      OnUpdate(
-	       [this](size_t){
-		 data_node_symcount->Reset();
-		 for (size_t i = 0; i< pop.size(); i++) {
-                   //CHANGED: Check if the organism has a symbiont before adding the data
-		   if (IsOccupied(i)) data_node_symcount->AddDatum(CalcSymNum(i));
-		 }
-	       }
-	       );
-    }
-    return *data_node_symcount;
+    return *data_node_ecoli_count;
   }
     
-  emp::DataMonitor<int>& GetInfectedHostNumDataNode() {
-    if (!data_node_infectedhostnum) {
-      data_node_infectedhostnum.New();
+  emp::DataMonitor<int>& GetShigellaDataNode() {
+    if (!data_node_shi_count) {
+      data_node_shi_count.New();
       OnUpdate(
-	       [this](size_t){
-		 data_node_infectedhostnum->Reset();
-		 for (size_t i = 0; i< pop.size(); i++) {
+               [this](size_t){
+                 data_node_shi_count->Reset();
+                 for (size_t i = 0; i< pop.size(); i++) {
                    //CHANGED: Check if the organism has a symbiont before adding the data
-		   if (IsOccupied(i)) data_node_infectedhostnum->AddDatum(CalcInfectedHostNum(i));
-		 }
-	       }
-	       );
+                   if (IsOccupied(i)&& pop[i]->GetName() == "Shigella") data_node_shi_count->AddDatum(1);
+                 }
+               }
+               );
     }
-    return *data_node_infectedhostnum;
+    return *data_node_shi_count;
+  }
+    
+  emp::DataMonitor<int>& GetEcoliSymCountDataNode() {
+    if (!data_node_e_sym_count) {
+      data_node_e_sym_count.New();
+      OnUpdate(
+               [this](size_t){
+                 data_node_e_sym_count->Reset();
+                 for (size_t i = 0; i< pop.size(); i++) {
+                   //CHANGED: Check if the organism has a symbiont before adding the data
+                   if (IsOccupied(i) && pop[i]->GetName() == "Ecoli") data_node_e_sym_count->AddDatum(CalcSymNum(i));
+                 }
+               }
+               );
+    }
+    return *data_node_e_sym_count;
   }
   
+  emp::DataMonitor<int>& GetShiSymCountDataNode() {
+    if (!data_node_s_sym_count) {
+      data_node_s_sym_count.New();
+      OnUpdate(
+               [this](size_t){
+                 data_node_s_sym_count->Reset();
+                 for (size_t i = 0; i< pop.size(); i++) {
+                   if (IsOccupied(i) && pop[i]->GetName() == "Shigella") data_node_s_sym_count->AddDatum(CalcSymNum(i));
+                 }
+               }
+               );
+    }
+    return *data_node_s_sym_count;
+  }
+    
   
-  void Update(size_t new_resources=10) {
+  void Update(double new_resources=50) {
     emp::World<Host>::Update();
     emp::vector<size_t> schedule = emp::GetPermutation(random, GetSize());
     double resource_portion = new_resources;
-    if (GetNumOrgs() != 0){
-      resource_portion = new_resources/GetNumOrgs();
+    if (pop.size() != 0){
+      resource_portion = new_resources/pop.size();
     }
     
     for (size_t i : schedule) {
@@ -136,7 +154,8 @@ class SymWorld : public emp::World<Host>{
         for (size_t j = 0; j < (pop[i]->GetSymbionts())->size(); j++) {
           Symbiont parent = (*(pop[i]->GetSymbionts()))[j];
           for(int k = 0; k < parent.GetReproRate(); k++) {
-            Symbiont * offspring = new Symbiont(parent.GetStrainType(), parent.GetTargetType(), 10.0, 0.0, parent.GetReproRate(), -1);
+            Symbiont * offspring = new Symbiont(parent.GetStrainType(),parent.GetTargetType(),
+                                                parent.GetBurstTimer(), 0.0, parent.GetReproRate(), -1);
             pop[i]->AddReproSymbionts(offspring);
           }
           (*(pop[i]->GetSymbionts()))[j].IncrementBurstTimer();
@@ -144,8 +163,7 @@ class SymWorld : public emp::World<Host>{
 
         //check burst for every symbiont
         for(size_t j = 0; j < (pop[i]->GetSymbionts())->size(); j++) {
-          if((*(pop[i]->GetSymbionts()))[j].CheckBurst()) {
-            //std::cout << "bursted" <<(*(pop[i]->GetSymbionts()))[j].GetBurstTimer() << std::endl;
+          if((*(pop[i]->GetSymbionts()))[j].CheckBurst()) {            
             //syms and repro_sym get ready
             for (size_t symNum = 0; symNum < (pop[i]->GetSymbionts())->size(); symNum++) {
               Symbiont refreshedSym = (*(pop[i]->GetSymbionts()))[symNum];
@@ -171,11 +189,9 @@ class SymWorld : public emp::World<Host>{
             DoDeath(i);
             break;
           }//if check burst
-        }
-        
-        }//if infected
-    }//update                                                                                                                              
- 
+        }        
+      }//if infected
+    }//update                                                           
   }
 };
 

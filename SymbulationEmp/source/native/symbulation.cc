@@ -8,18 +8,14 @@ using namespace std;
 
 EMP_BUILD_CONFIG( SymConfigBase,
                  VALUE(SEED, double, 10, "What value should the random seed be?"),
-                 VALUE(MUTATION_RATE, double, 0.002, "Standard deviation of the distribution to mutate by"),
-                 VALUE(SYNERGY, double, 5, "Amount symbiont's returned resources should be multiplied by"),
-                 VALUE(VERTICAL_TRANSMISSION, double, 1, "Value 0 to 1 of probability of symbiont vertically transmitting when host reproduces"),
-		  VALUE(HOST_INT, double, 0, "Interaction value from -1 to 1 that hosts should have initially, -2 for random"),
-		  VALUE(SYM_INT, double, 0, "Interaction value from -1 to 1 that symbionts should have initially, -2 for random"),
-                  VALUE(WORLD_TYPE, int, 1, "Type of the world (1 for Mixed and 2 for Grid"),
-                 VALUE(GRID_X, int, 5, "Width of the world"),
-                 VALUE(GRID_Y, int, 5, "Height of world"),
-                 VALUE(UPDATES, int, 1, "Number of updates to run before quitting"),
-                  VALUE(POP_SIZE, int, 400, "Number of initial organisms"),
-                  VALUE(MOI, double, 1.0, "Ratio of symbionts to hosts"),
-
+                   VALUE(WORLD_TYPE, int, 1, "Type of the world (1 for Mixed and 2 for Grid"),
+                   VALUE(UPDATES, int, 1, "Number of updates to run before quitting"),
+                  VALUE(ECOLI_NUM, size_t, 200, "Initial number of E.coli bacteria"),
+                  VALUE(SHIGELLA_NUM, size_t, 200, "Initial number of shigella bacteria"),
+                  VALUE(MOI_E, double, 1.0, "Initial MOI of E.coli Virus"),
+                  VALUE(MOI_S, double, 1.0, "Initial MOI of shigella Virus"),
+                  VALUE(BURSTVAL, double, 10, "Burst Timer"),
+                  VALUE(REPRO_RATE, double, 1.0, "Rate of reproduction for symbiont"),
                  )
 	
 int main(int argc, char * argv[])
@@ -36,30 +32,42 @@ int main(int argc, char * argv[])
     if (args.TestUnknown() == false) exit(0); //Leftover args no good
 
     double numupdates = config.UPDATES();
-    //double POP_SIZE = config.GRID_X() * config.GRID_Y();
-    double POP_SIZE = config.POP_SIZE();
-    double MOI = config.MOI();
-
+    size_t ECOLI_NUM = config.ECOLI_NUM();
+    size_t SHIGELLA_NUM = config.SHIGELLA_NUM();
+    double MOI_E = config.MOI_E();
+    double MOI_S = config.MOI_S();
+    double POP_SIZE = ECOLI_NUM + SHIGELLA_NUM;
+    double BURSTVAL = config.BURSTVAL();
+    double REPRO_RATE = config.REPRO_RATE();
+    
     emp::Random random(config.SEED());
         
     SymWorld world(random);
-    //world.SetPopStruct_Grid(config.GRID_X(), config.GRID_Y();
-    //world.SetPopStruct_Mixed(false);
     world.SetPopStruct_Grow();
+    
     //Set up files
     world.SetupPopulationFile().SetTimingRepeat(10);
-    world.SetupResultFile("Result_"+to_string(config.SEED())+"_"+to_string(config.MOI())+".data").SetTimingRepeat(1);
+    world.SetupResultFile("Result_"+to_string(config.SEED())+"_Ecoli_"+to_string(ECOLI_NUM)+ "_Shi_" +to_string(SHIGELLA_NUM)+".data").SetTimingRepeat(1);
 
     //inject organisms
-    for (size_t i = 0; i < POP_SIZE; i++){
+    for (size_t i = 0; i < ECOLI_NUM; i++){
       Host *new_org;
-      new_org = new Host("E");
+      new_org = new Host("Ecoli");
+      world.Inject(*new_org);
+    }
+    for (size_t i = 0; i < SHIGELLA_NUM; i++){
+      Host *new_org;
+      new_org = new Host("Shigella");
       world.Inject(*new_org);
     }
 
+    
     //inject symbionts
-    for(size_t i = 0; i < POP_SIZE * MOI; i++) {
-      world.InjectSymbiont();
+    for(size_t i = 0; i < POP_SIZE * MOI_E; i++) {
+      world.InjectSymbiont("Ecoli", BURSTVAL, REPRO_RATE);
+    }
+    for(size_t i = 0; i < POP_SIZE * MOI_S; i++) {
+      world.InjectSymbiont("Shigella", BURSTVAL, REPRO_RATE);
     }
 
     //Loop through updates      
