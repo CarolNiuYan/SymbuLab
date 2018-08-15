@@ -140,7 +140,7 @@ class SymWorld : public emp::World<Host>{
       double resource_limit = 27;
 
       //for now we dont have concern for resource limitation
-      double absorbedResource = (resource_limit < resource_portion) ? (resource_limit) : (resource_portion);
+      //double absorbedResource = (resource_limit < resource_portion) ? (resource_limit) : (resource_portion);
       pop[i]->Process(random, resource_limit);  //distribute    
       
       //if not infected
